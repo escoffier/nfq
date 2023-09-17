@@ -1,12 +1,16 @@
-#include <iostream>
-#include <unistd.h>
+#include "packet.h"
 #include <fcntl.h>
+#include <iostream>
+#include <netinet/in.h>
+#include <unistd.h>
 extern "C" {
 #include <arpa/inet.h>
- #include <linux/netfilter.h> /* for NF_ACCEPT */
- #include <linux/netfilter/nfnetlink_queue.h>
-#include <sys/socket.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <linux/netfilter.h> /* for NF_ACCEPT */
+#include <linux/netfilter/nfnetlink_queue.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
 }
 #define DEBUG_ERROR(level, format, args...) (std::cout << format);
 
@@ -24,41 +28,63 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     // DEBUG_PACKET("hw_protocol=0x%04x hook=%u id=%u, dp ctx:%s\n",
     // ntohs(ph->hw_protocol), ph->hook, id, ctx->name);
   }
-   nfq_set_verdict(qh, ntohl( ph->packet_id ), NF_ACCEPT, 0, NULL);
+
+  char *pktdata;
+  auto ret = nfq_get_payload(nfa, reinterpret_cast<unsigned char **>(&pktdata));
+  if (ret > 0) {
+    seastar::net::packet p(pktdata, ret);
+    p.get_header<iphdr>(0);
+    iphdr *ih = (iphdr *)pktdata;
+    unsigned ip_len = ntohs(ih->tot_len);
+    // Trim IP header 
+    unsigned ip_hdr_len = ih->ihl * 4;
+    p.trim_back(ip_hdr_len);
+    if (ih->protocol == IPPROTO_TCP) {
+      auto h = p.get_header(0, 20);
+      tcphdr *th = (tcphdr*)h;
+      unsigned th_len = th->doff * 4;
+    }
+
+    tcphdr *th;
+  }
+  nfq_set_verdict(qh, ntohl(ph->packet_id), NF_ACCEPT, 0, NULL);
+  return 0;
 }
 
-static int enter_netns(const char *netns)
-{
-    int curfd, netfd;
+static int enter_netns(const char *netns) {
+  int curfd, netfd;
 
-    if ((curfd = open("/proc/self/ns/net", O_RDONLY)) == -1) {
-        DEBUG_ERROR(DBG_CTRL, "failed to open current network namespace\n");
-        return -1;
-    }
-    if ((netfd = open(netns, O_RDONLY)) == -1) {
-        DEBUG_ERROR(DBG_CTRL, "failed to open network namespace: netns=%s\n", netns);
-        close(curfd);
-        return -1;
-    }
-    if (setns(netfd, CLONE_NEWNET) == -1) {
-        DEBUG_ERROR(DBG_CTRL, "failed to enter network namespace: netns=%s error=%s\n", netns, strerror(errno));
-        close(netfd);
-        close(curfd);
-        return -1;
-    }
+  if ((curfd = open("/proc/self/ns/net", O_RDONLY)) == -1) {
+    DEBUG_ERROR(DBG_CTRL, "failed to open current network namespace\n");
+    return -1;
+  }
+  if ((netfd = open(netns, O_RDONLY)) == -1) {
+    DEBUG_ERROR(DBG_CTRL, "failed to open network namespace: netns=%s\n",
+                netns);
+    close(curfd);
+    return -1;
+  }
+  if (setns(netfd, CLONE_NEWNET) == -1) {
+    DEBUG_ERROR(DBG_CTRL,
+                "failed to enter network namespace: netns=%s error=%s\n", netns,
+                strerror(errno));
     close(netfd);
-    return curfd;
+    close(curfd);
+    return -1;
+  }
+  close(netfd);
+  return curfd;
 }
 
-static int restore_netns(int fd)
-{
-    if (setns(fd, CLONE_NEWNET) == -1) {
-        DEBUG_ERROR(DBG_CTRL, "failed to restore network namespace: error=%s\n", strerror(errno));
-        close(fd);
-        return -1;
-    }
+static int restore_netns(int fd) {
+  if (setns(fd, CLONE_NEWNET) == -1) {
+    DEBUG_ERROR(DBG_CTRL, "failed to restore network namespace: error=%s\n",
+                strerror(errno));
     close(fd);
-    return 0;
+    return -1;
+  }
+  close(fd);
+  return 0;
 }
 
 int main(int argc, char **argv) {
@@ -67,10 +93,10 @@ int main(int argc, char **argv) {
   struct nfq_q_handle *nfq_q_hdl;
   int fd;
   int err;
-     int curns_fd;
-    if ((curns_fd = enter_netns("/proc/31511/ns/net")) < 0) {
-        return -1;
-    }
+  int curns_fd;
+  if ((curns_fd = enter_netns("/proc/31511/ns/net")) < 0) {
+    return -1;
+  }
   nfq_hdl = nfq_open();
   if (!nfq_hdl) {
     DEBUG_ERROR(DBG_CTRL, "fail to open nfq_hdl\n");
@@ -84,8 +110,7 @@ int main(int argc, char **argv) {
 
   std::cout << "binding this socket to queue(%d)" << nfq_queue_num << std::endl;
 
-  nfq_q_hdl =
-      nfq_create_queue(nfq_hdl, nfq_queue_num, &dp_nfq_rx_cb, NULL);
+  nfq_q_hdl = nfq_create_queue(nfq_hdl, nfq_queue_num, &dp_nfq_rx_cb, NULL);
   if (!nfq_q_hdl) {
     DEBUG_ERROR(DBG_CTRL, "error during nfq_create_queue()\n");
     return -1;
@@ -139,9 +164,9 @@ int main(int argc, char **argv) {
   char buf[4096];
   int rv;
   while (1) {
-  if( (rv = recv(fd, buf, sizeof(buf), 0) ) >= 0 ) {
-     nfq_handle_packet(nfq_hdl, buf, rv);
-  }
+    if ((rv = recv(fd, buf, sizeof(buf), 0)) >= 0) {
+      nfq_handle_packet(nfq_hdl, buf, rv);
+    }
   }
   while (1) {
     sleep(1000);
