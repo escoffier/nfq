@@ -59,6 +59,12 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
       tcphdr *th = (tcphdr*)h;
       // tcphdr *th = (struct tcphdr *)(pktdata + iph->ihl *4);
       unsigned th_len = th->doff * 4;
+      if (p.len() > th_len) {
+          p.trim_front(th_len);
+          std::cout<< "playload length: " << p.len()<< std::endl;
+      }
+      
+      
       std::cout<< "source: " << ntohs(th->source) << "  dest: "<<ntohs(th->dest)<<std::endl;
     }
   }

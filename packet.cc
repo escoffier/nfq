@@ -25,11 +25,25 @@
 #include <iostream>
 #include <algorithm>
 #include <cctype>
+#include <fmt/ostream.h>
+#include <sstream>      // std::stringstream
 
 namespace seastar {
 
 static_assert(std::is_nothrow_constructible_v<deleter>);
 static_assert(std::is_nothrow_move_constructible_v<deleter>);
+
+template <typename... A>
+std::string
+format(const char* fmt, A&&... a) {
+    fmt::memory_buffer out;
+#if FMT_VERSION >= 80000
+    fmt::format_to(fmt::appender(out), fmt::runtime(fmt), std::forward<A>(a)...);
+#else
+    fmt::format_to(out, fmt, std::forward<A>(a)...);
+#endif
+    return std::string{out.data(), out.size()};
+}
 
 namespace net {
 
@@ -119,7 +133,7 @@ std::ostream& operator<<(std::ostream& os, const packet& p) {
                 }
                 nfirst = false;
                 uint8_t b = *p;
-                // os << format("{:02x}", unsigned(b));
+                os << format("{:02x}", unsigned(b));
             }
             os << "}";
         }
