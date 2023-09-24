@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <netinet/in.h>
+#include <ostream>
 #include <unistd.h>
 extern "C" {
 #include <arpa/inet.h>
@@ -43,9 +44,8 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
       auto h = p.get_header(0, 20);
       tcphdr *th = (tcphdr*)h;
       unsigned th_len = th->doff * 4;
+      std::cout<< "source" << th->source << "dest"<<th->dest <<std::endl;
     }
-
-    tcphdr *th;
   }
   nfq_set_verdict(qh, ntohl(ph->packet_id), NF_ACCEPT, 0, NULL);
   return 0;
