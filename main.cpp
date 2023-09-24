@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <ostream>
 #include <unistd.h>
+#include <cstring>
 extern "C" {
 #include <arpa/inet.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
@@ -37,6 +38,19 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     p.get_header<iphdr>(0);
     iphdr *ih = (iphdr *)pktdata;
     unsigned ip_len = ntohs(ih->tot_len);
+    struct in_addr tmp_in_addr;
+    
+    char addr_str[16];
+   
+   
+    tmp_in_addr.s_addr = ih->saddr;
+    strcpy(addr_str, inet_ntoa(tmp_in_addr));
+    std::string s_addr(addr_str);
+    tmp_in_addr.s_addr = ih->daddr;
+    strcpy(addr_str, inet_ntoa(tmp_in_addr));
+    std::string d_addr(addr_str);
+
+    std::cout<< "source addr: " << s_addr << "  dest: "<<d_addr<<std::endl;
     // Trim IP header 
     unsigned ip_hdr_len = ih->ihl * 4;
     p.trim_back(ip_hdr_len);
