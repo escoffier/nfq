@@ -59,8 +59,7 @@ static int enter_netns(const char *netns) {
     return -1;
   }
   if ((netfd = open(netns, O_RDONLY)) == -1) {
-    DEBUG_ERROR(DBG_CTRL, "failed to open network namespace: netns=%s\n",
-                netns);
+    std::cout<< "failed to open network namespace: netns=" << netns <<std::endl;
     close(curfd);
     return -1;
   }
