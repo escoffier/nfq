@@ -36,27 +36,28 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
   if (ret > 0) {
     seastar::net::packet p(pktdata, ret);
     p.get_header<iphdr>(0);
-    iphdr *ih = (iphdr *)pktdata;
-    unsigned ip_len = ntohs(ih->tot_len);
+    iphdr *iph = (iphdr *)pktdata;
+    unsigned ip_len = ntohs(iph->tot_len);
     struct in_addr tmp_in_addr;
     
     char addr_str[16];
    
    
-    tmp_in_addr.s_addr = ih->saddr;
+    tmp_in_addr.s_addr = iph->saddr;
     strcpy(addr_str, inet_ntoa(tmp_in_addr));
     std::string s_addr(addr_str);
-    tmp_in_addr.s_addr = ih->daddr;
+    tmp_in_addr.s_addr = iph->daddr;
     strcpy(addr_str, inet_ntoa(tmp_in_addr));
     std::string d_addr(addr_str);
 
     std::cout<< "source addr: " << s_addr << "  dest: "<<d_addr<<std::endl;
     // Trim IP header 
-    unsigned ip_hdr_len = ih->ihl * 4;
+    unsigned ip_hdr_len = iph->ihl * 4;
     p.trim_back(ip_hdr_len);
     if (ih->protocol == IPPROTO_TCP) {
       auto h = p.get_header(0, 20);
-      tcphdr *th = (tcphdr*)h;
+      // tcphdr *th = (tcphdr*)h;
+      tcphdr *th = (struct tcphdr *)(pktdata + iph->ihl *4);
       unsigned th_len = th->doff * 4;
       std::cout<< "source: " << ntohs(th->source) << "  dest: "<<ntohs(th->dest)<<std::endl;
     }
