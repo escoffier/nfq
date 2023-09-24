@@ -12,4 +12,4 @@ set(SOURCES
 add_executable(nfq ${SOURCES})
 
 # target_include_directories(nfq PRIVATE )
-target_link_libraries(nfq -lnetfilter_queue -lpthread -lnfnetlink)
+target_link_libraries(nfq -lnetfilter_queue -lpthread -lnfnetlink fmt::fmt)
