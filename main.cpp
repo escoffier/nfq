@@ -61,6 +61,8 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
       unsigned th_len = th->doff * 4;
       if (p.len() > th_len) {
           p.trim_front(th_len);
+          std::string playload(p.get_header(0, p.len()), p.len());
+          std::cout<< "playload: " << playload<< std::endl;
           std::cout<< "playload length: " << p.len()<< std::endl;
       }
       
