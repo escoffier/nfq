@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
   int fd;
   int err;
   int curns_fd;
-  if ((curns_fd = enter_netns("/proc/31511/ns/net")) < 0) {
+  if ((curns_fd = enter_netns("/proc/2477008/ns/net")) < 0) {
     return -1;
   }
   nfq_hdl = nfq_open();
