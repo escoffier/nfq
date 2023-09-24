@@ -4,6 +4,8 @@ project(nfq)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+find_package(fmt)
+
 set(SOURCES
     packet.cc
     main.cpp
