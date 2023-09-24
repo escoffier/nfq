@@ -54,7 +54,7 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     // Trim IP header 
     unsigned ip_hdr_len = iph->ihl * 4;
     p.trim_back(ip_hdr_len);
-    if (ih->protocol == IPPROTO_TCP) {
+    if (iph->protocol == IPPROTO_TCP) {
       auto h = p.get_header(0, 20);
       // tcphdr *th = (tcphdr*)h;
       tcphdr *th = (struct tcphdr *)(pktdata + iph->ihl *4);
