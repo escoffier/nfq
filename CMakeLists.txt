@@ -8,6 +8,7 @@ find_package(fmt)
 
 set(SOURCES
     packet.cc
+    ip_checksum.cc
     main.cpp
 )
 

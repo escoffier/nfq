@@ -5,6 +5,7 @@
 #include <ostream>
 #include <unistd.h>
 #include <cstring>
+#include <unordered_map>
 extern "C" {
 #include <arpa/inet.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
@@ -15,7 +16,7 @@ extern "C" {
 #include <sys/socket.h>
 }
 #define DEBUG_ERROR(level, format, args...) (std::cout << format);
-
+// std::unordered_map<typename Key, typename Tp>
 int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
                  struct nfq_data *nfa, void *data) {
   uint32_t id;
@@ -32,9 +33,10 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
   }
 
   char *pktdata;
-  auto ret = nfq_get_payload(nfa, reinterpret_cast<unsigned char **>(&pktdata));
-  if (ret > 0) {
-    seastar::net::packet p(pktdata, ret);
+  auto len = nfq_get_payload(nfa, reinterpret_cast<unsigned char **>(&pktdata));
+  if (len > 0) {
+    std::cout << "len: " << std::endl;
+    seastar::net::packet p(pktdata, len);
     p.get_header<iphdr>(0);
     iphdr *iph = (iphdr *)pktdata;
     unsigned ip_len = ntohs(iph->tot_len);
@@ -65,7 +67,6 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
           std::cout<< "playload: " << playload<< std::endl;
           std::cout<< "playload length: " << p.len()<< std::endl;
       }
-      
       
       std::cout<< "source: " << ntohs(th->source) << "  dest: "<<ntohs(th->dest)<<std::endl;
     }
