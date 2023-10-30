@@ -289,7 +289,13 @@ int main(int argc, char **argv) {
   int fd;
   int err;
   int curns_fd;
-  if ((curns_fd = enter_netns("/proc/2477008/ns/net")) < 0) {
+
+  char* ns = argv[1];
+  std::string ns_path{"/proc/"};
+  ns_path += ns ;
+  ns_path += "/ns/net";
+  std::cout << "ns path: " << ns_path << std::endl;
+  if ((curns_fd = enter_netns(ns_path.c_str())) < 0) {
     return -1;
   }
   nfq_hdl = nfq_open();
