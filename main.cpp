@@ -232,14 +232,14 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         std::string playload(p.get_header(0, p.len()), p.len());
         std::cout << "playload: " << playload << std::endl;
         std::cout << "playload length: " << p.len() << std::endl;
+        std::string blocked_ip{"172.17.0.4"};
+        if (d_addr == blocked_ip) {
+          send_rst(th->th_ack, iph->daddr, iph->saddr, th->source, th->dest);
+        }
       }
 
       std::cout << "source: " << ntohs(th->source)
                 << "  dest: " << ntohs(th->dest) << std::endl;
-      std::string blocked_ip{"172.17.0.4"};
-      if (d_addr == blocked_ip) {
-        send_rst(th->th_ack, iph->daddr, iph->saddr, th->source, th->dest);
-      }
     }
   }
   nfq_set_verdict(qh, ntohl(ph->packet_id), NF_ACCEPT, 0, NULL);
@@ -290,9 +290,9 @@ int main(int argc, char **argv) {
   int err;
   int curns_fd;
 
-  char* ns = argv[1];
+  char *ns = argv[1];
   std::string ns_path{"/proc/"};
-  ns_path += ns ;
+  ns_path += ns;
   ns_path += "/ns/net";
   std::cout << "ns path: " << ns_path << std::endl;
   if ((curns_fd = enter_netns(ns_path.c_str())) < 0) {
