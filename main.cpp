@@ -238,7 +238,7 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
                 << "  dest: " << ntohs(th->dest) << std::endl;
       std::string blocked_ip{"172.17.0.4"};
       if (d_addr == blocked_ip) {
-        send_rst(th->th_ack, iph->saddr, iph->daddr, th->source, th->dest);
+        send_rst(th->th_ack, iph->daddr, iph->saddr, th->source, th->dest);
       }
     }
   }
