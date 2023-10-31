@@ -234,7 +234,7 @@ int dp_nfq_rx_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         std::cout << "playload length: " << p.len() << std::endl;
         std::string blocked_ip{"172.17.0.4"};
         if (d_addr == blocked_ip) {
-          send_rst(th->th_ack, iph->daddr, iph->saddr, th->th_dport, th->th_sport);
+          // send_rst(th->th_ack, iph->daddr, iph->saddr, th->th_dport, th->th_sport);
           send_rst(htonl(ntohl(th->th_seq)+1), iph->saddr, iph->daddr, th->th_sport, th->th_dport);
 
         }
